@@ -370,12 +370,14 @@ namespace DSharpPlus
             this._webSocketClient.MessageReceived += SocketOnMessage;
             this._webSocketClient.ExceptionThrown += SocketOnException;
 
-            var gwuri = new UriBuilder(this._gatewayUri)
-            {
-                Query = this.Configuration.GatewayCompressionLevel == GatewayCompressionLevel.Stream ? "v=6&encoding=json&compress=zlib-stream" : "v=6&encoding=json"
-            };
+            var gwuri = new QueryUriBuilder(this._gatewayUri)
+                .AddParameter("v", "6")
+                .AddParameter("encoding", "json");
 
-            await this._webSocketClient.ConnectAsync(gwuri.Uri).ConfigureAwait(false);
+            if (this.Configuration.GatewayCompressionLevel == GatewayCompressionLevel.Stream)
+                gwuri.AddParameter("compress", "zlib-stream");
+
+            await this._webSocketClient.ConnectAsync(gwuri.Build()).ConfigureAwait(false);
 
             Task SocketOnConnect()
                 => this._socketOpened.InvokeAsync();
@@ -491,9 +493,10 @@ namespace DSharpPlus
         /// <param name="content"></param>
         /// <param name="isTTS"></param>
         /// <param name="embed"></param>
+        /// <param name="mentions">Allowed mentions in the message</param>
         /// <returns></returns>
-        public Task<DiscordMessage> SendMessageAsync(DiscordChannel channel, string content = null, bool isTTS = false, DiscordEmbed embed = null)
-            => this.ApiClient.CreateMessageAsync(channel.Id, content, isTTS, embed);
+        public Task<DiscordMessage> SendMessageAsync(DiscordChannel channel, string content = null, bool isTTS = false, DiscordEmbed embed = null, IEnumerable<IMention> mentions = null)
+            => this.ApiClient.CreateMessageAsync(channel.Id, content, isTTS, embed, mentions);
 
         /// <summary>
         /// Creates a guild. This requires the bot to be in less than 10 guilds total.
